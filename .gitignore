@@ -1,0 +1,13 @@
+# Virtual environment
+venv/
+
+# Python
+__pycache__/
+*.pyc
+
+# Large / regeneratable data (regenerate with scripts/01-04)
+data/koi_raw.csv
+data/lightcurves/
+
+# Streamlit
+.streamlit/

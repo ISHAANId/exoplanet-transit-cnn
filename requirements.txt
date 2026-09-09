@@ -1,0 +1,9 @@
+lightkurve
+astroquery
+tensorflow
+scikit-learn
+scipy
+matplotlib
+pandas
+numpy
+streamlit
