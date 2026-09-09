@@ -79,10 +79,14 @@ def main():
     (X_train, y_train), (X_val, y_val), (X_test, y_test) = data["train"], data["val"], data["test"]
     print(f"[{args.variant}] train={len(y_train)} val={len(y_val)} test={len(y_test)}")
 
-    if len(y_train) < 20 or len(np.unique(y_train)) < 2:
-        print("Not enough training data / only one class present -- this is expected on a "
-              "small smoke-test download. Run 03_download_lightcurves.py on more stars first.")
+    if len(y_train) < 6 or len(np.unique(y_train)) < 2:
+        print("Not enough training data / only one class present to train at all. "
+              "Run 03_download_lightcurves.py on more stars first.")
         return
+    if len(y_train) < 50:
+        print(f"NOTE: training on only {len(y_train)} examples (smoke test). Metrics below "
+              f"are a proof-of-concept that the pipeline works end-to-end, not a statistically "
+              f"reliable measurement -- see PROJECT_LOG.md.")
 
     # Class imbalance is common (more false positives than confirmed planets,
     # or vice versa depending on the sample) -- weight the loss so the CNN

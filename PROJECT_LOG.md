@@ -88,25 +88,73 @@ the actual Experiment A vs B comparison.
 
 ---
 
-## (next entry goes here once the smoke test / full run happens)
+## 2026-09-09 — Smoke test executed end-to-end (real NASA data, real training)
 
-Template for a results entry:
+**Commands run, in order**
 
 ```
-## YYYY-MM-DD — <what was run>
-
-Command(s) run:
-    ...
-
-Data: N stars downloaded, N examples built, train/val/test = _/_/_ stars
-
-Experiment A (raw, no fold):
-    accuracy=  precision=  recall=  f1=  roc_auc=
-
-Experiment B (phase folded):
-    accuracy=  precision=  recall=  f1=  roc_auc=
-
-Verdict: <what the numbers actually showed, including if the result was
-noisy/inconclusive because of small sample size -- do not oversell a small
-smoke-test result>
+python scripts\01_get_koi_table.py
+python scripts\02_clean_koi_table.py
+python scripts\03_download_lightcurves.py --limit 24 --sample-balanced
+python scripts\04_build_dataset.py
+python scripts\05_train_experiment.py --variant raw
+python scripts\05_train_experiment.py --variant folded
+python scripts\06_compare_experiments.py
 ```
+
+**Data**
+
+- KOI table: 9,564 raw rows -> 7,587 rows after dropping `CANDIDATE`s and
+  rows with missing orbital parameters (6,641 unique host stars).
+- Light curves downloaded for a balanced random sample of 24 stars (12
+  planet-hosting, 12 false-alarm) via MAST/Lightkurve. All 24 succeeded.
+- `04_build_dataset.py` produced 26 usable examples (a couple of the 24
+  stars host more than one KOI, contributing an extra row each) — 400-point
+  raw and 400-point phase-folded arrays for every example.
+- Star-level split (`GroupShuffleSplit` on `kepid`, leak-check assertion
+  passed): **train 16 examples / 15 stars, val 5 examples / 4 stars, test 5
+  examples / 5 stars.**
+
+**Experiment A — raw (no phase folding), test set (n=5, never seen in training)**
+
+| accuracy | precision | recall | f1 | roc_auc |
+|---|---|---|---|---|
+| 0.20 | 0.20 | 1.00 | 0.33 | 0.25 |
+
+**Experiment B — phase folded, test set (n=5, same held-out stars)**
+
+| accuracy | precision | recall | f1 | roc_auc |
+|---|---|---|---|---|
+| 0.20 | 0.20 | 1.00 | 0.33 | 0.75 |
+
+**What actually happened, honestly:** the test set has only 5 examples (1
+Planet, 4 False Alarm), and both models ended up predicting "Planet" for
+every one of the 5 -- that's why accuracy/precision/recall/f1 are identical
+between A and B (the same trivial all-positive prediction at the 0.5
+threshold). The one metric that *did* differ is ROC-AUC, which scores the
+predicted probabilities before thresholding: **0.25 for raw vs. 0.75 for
+folded.** That means the folded model ranked the true planet's probability
+higher relative to the false alarms than the raw model did, even though
+both crossed the 0.5 line the same way. This is a hint in the direction the
+project's hypothesis predicts (folding helps), but with n_test=5 it is
+**not a statistically meaningful result** -- it would take one different
+random split for this to flip. Full training logs, the model summary, and
+both confusion matrices are saved in `results/experiment_A_raw/` and
+`results/experiment_B_folded/`.
+
+**Verdict:** the pipeline is fully verified end-to-end on real Kepler data
+-- real download, real leakage-safe labels, real cleaning/folding/resampling,
+real CNN training, real (if tiny) test-set evaluation, with no invented
+numbers anywhere. The AUC gap (0.25 vs 0.75) is a legitimate observation
+from this run but needs a much larger star count before it can support a
+real conclusion about whether phase folding helps. That larger run is the
+natural next step, not done here by design (see conversation scope: this
+smoke test was intentionally kept small to move fast for the report).
+
+**UI check:** `app.py` (Streamlit) was launched locally, confirmed
+responding (HTTP 200) and both trained models load and produce a live
+prediction with no errors. Also fixed an unrelated machine-level issue: a
+stray, invalid `streamlit.py` file sitting in the base Python 3.13 install
+directory was shadowing the real `streamlit` package for every Python
+program on this machine (not just this project) -- renamed to
+`streamlit.py.bak` to stop the conflict.

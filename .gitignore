@@ -9,5 +9,8 @@ __pycache__/
 data/koi_raw.csv
 data/lightcurves/
 
+# Local report scratch files
+streamlit.log
+
 # Streamlit
 .streamlit/
