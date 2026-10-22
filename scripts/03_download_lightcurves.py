@@ -21,9 +21,10 @@ Run (full dataset -- can take hours, run it in the background):
 """
 
 import argparse
+import queue
 import sys
+import threading
 import time
-import traceback
 from pathlib import Path
 
 import numpy as np
@@ -31,6 +32,12 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from config import KOI_CLEAN_TABLE_PATH, LIGHTCURVE_CACHE_DIR, RANDOM_SEED  # noqa: E402
+
+# A dropped MAST connection can hang the underlying socket call forever without
+# raising (observed in practice: a run stalled 20+ hours on one star with no
+# error). Bounding each star to a daemon thread with a join timeout means a
+# hung star gets skipped instead of freezing the entire multi-hour download.
+STAR_TIMEOUT_SECONDS = 300
 
 
 def cache_path(kepid: int) -> Path:
@@ -68,6 +75,27 @@ def download_one_star(kepid: int):
     return lc
 
 
+def download_with_timeout(kepid: int, timeout: float = STAR_TIMEOUT_SECONDS):
+    """Run download_one_star on a daemon thread; give up after `timeout` seconds
+    instead of blocking forever on a hung connection. The thread is left to die
+    on its own (it's a daemon, so it won't keep the process alive) rather than
+    forcibly killed, which Python threads don't support."""
+    outcome: "queue.Queue" = queue.Queue(maxsize=1)
+
+    def worker():
+        try:
+            outcome.put(("ok", download_one_star(kepid)))
+        except Exception as e:  # noqa: BLE001 -- MAST/network errors are varied and non-fatal
+            outcome.put(("error", e))
+
+    t = threading.Thread(target=worker, daemon=True)
+    t.start()
+    t.join(timeout)
+    if t.is_alive():
+        return "timeout", None
+    return outcome.get()
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--limit", type=int, default=None,
@@ -101,13 +129,26 @@ def main():
             continue
 
         print(f"[{i}/{len(stars)}] KIC {kepid} ...", end=" ", flush=True)
-        try:
-            lc = download_one_star(kepid)
-            if lc is None:
-                print("no data available, skipping.")
-                failed += 1
-                continue
+        status, value = download_with_timeout(kepid)
 
+        if status == "timeout":
+            failed += 1
+            print(f"TIMED OUT after {STAR_TIMEOUT_SECONDS}s, skipping.")
+            time.sleep(2)
+            continue
+        if status == "error":
+            failed += 1
+            print(f"FAILED: {value}")
+            time.sleep(2)  # be polite to MAST after an error before trying the next star
+            continue
+
+        lc = value
+        if lc is None:
+            print("no data available, skipping.")
+            failed += 1
+            continue
+
+        try:
             np.savez(
                 out_path,
                 time=np.asarray(lc.time.value, dtype=np.float64),
@@ -116,11 +157,9 @@ def main():
             )
             ok += 1
             print(f"ok ({len(lc)} cadences).")
-        except Exception as e:  # noqa: BLE001 -- MAST/network errors are varied and non-fatal
+        except Exception as e:  # noqa: BLE001
             failed += 1
-            print(f"FAILED: {e}")
-            traceback.print_exc(limit=1)
-            time.sleep(2)  # be polite to MAST after an error before trying the next star
+            print(f"FAILED to save: {e}")
 
     print(f"\nDone. downloaded={ok} already_cached={skipped_cached} failed={failed}")
     print(f"Cache directory: {LIGHTCURVE_CACHE_DIR}")
