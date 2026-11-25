@@ -116,3 +116,34 @@ def make_folded_view(lc, period_days: float, epoch_bkjd: float,
         binned[~good] = np.interp(bin_centers[~good], bin_centers[good], binned[good])
 
     return binned
+
+
+def make_local_view(lc, period_days: float, epoch_bkjd: float, duration_hours: float,
+                    n_points: int = 200, half_width_durations: float = 3.0) -> np.ndarray:
+    """Zoomed-in "local view" for the Two-view CNN.
+
+    Fold on the period like the global view, but keep ONLY the stretch within
+    +/- half_width_durations transit durations of the transit centre, and bin it
+    into n_points. The global view (400 bins over the whole orbit) can only give
+    the dip a few bins; this view spreads the dip over most of the window, so the
+    network can see its true shape (flat-bottomed planet vs V-shaped binary).
+    """
+    time = lc.time.value
+    flux = lc.flux.value
+    dt = np.mod(time - epoch_bkjd + period_days / 2.0, period_days) - period_days / 2.0
+    half = min(half_width_durations * duration_hours / 24.0, period_days / 2.0)
+    keep = np.abs(dt) <= half
+    edges = np.linspace(-half, half, n_points + 1)
+    centers = (edges[:-1] + edges[1:]) / 2.0
+    binned = np.full(n_points, np.nan)
+    if keep.sum() > 0:
+        idx = np.clip(np.digitize(dt[keep], edges) - 1, 0, n_points - 1)
+        f = flux[keep]
+        for b in range(n_points):
+            v = f[idx == b]
+            if len(v):
+                binned[b] = np.median(v)
+    good = ~np.isnan(binned)
+    if good.sum() >= 2:
+        binned[~good] = np.interp(centers[~good], centers[good], binned[good])
+    return binned

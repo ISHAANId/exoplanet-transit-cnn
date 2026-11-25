@@ -158,3 +158,34 @@ stray, invalid `streamlit.py` file sitting in the base Python 3.13 install
 directory was shadowing the real `streamlit` package for every Python
 program on this machine (not just this project) -- renamed to
 `streamlit.py.bak` to stop the conflict.
+
+---
+
+## 2026-11-16 — Final run: 1,049 stars, six models, repeated splits
+
+**What was done**
+
+- Stopped the light-curve download at 1,049 cached stars (target was 1,000; MAST had become very slow).
+- Added a zoomed-in **local view** (200 bins, +/- 3 transit durations) to the folded dataset (`X_local`) and a **Two-view CNN** that reads both views.
+- Rebuilt the dataset (1,282 examples, 1,049 stars: train 808 / val 214 / test 260 examples), retrained Experiments A and B, reran the model zoo (now six models), and added `scripts/08_repeated_splits.py` (10 random star-level splits, all models retrained each time).
+- Added a Learn tab (five short lessons plus a quiz) to the Streamlit app, a plain-language PDF report (`report/Project_Complete_Report_Simple.pdf`, rebuilt by `report/build_report.py`) and a results dashboard.
+- Previous results (709 stars, 855 examples) are backed up in `backup_855rows_20261115_1429/`.
+
+**Main result (single split, 260 test examples)**
+
+| | A raw | B folded |
+|---|---|---|
+| accuracy | 0.673 | 0.831 |
+| roc_auc | 0.707 | 0.876 |
+
+**Six models, single split:** Two-view CNN 85.0%, Deeper CNN 83.8%, ExoFinder CNN 83.1%, Logistic Regression 75.8%, Random Forest 75.0%, GRU 68.8%.
+
+**10 random splits (mean accuracy +/- std):** Deeper CNN 81.2 +/- 2.7, Two-view CNN 81.1 +/- 2.9, ExoFinder CNN folded 79.9 +/- 3.3, Random Forest 75.6 +/- 1.9, Logistic Regression 72.8 +/- 2.5, ExoFinder CNN raw 68.3 +/- 3.8, GRU 63.9 +/- 1.9.
+
+**Reading the results honestly**
+
+- Folding beat raw in 10 of 10 splits, by 11.5 accuracy points on average. This is the one solid conclusion.
+- Deeper CNN vs the original CNN: +1.3 points, better in 5 of 10 splits. Two-view vs original: +1.2 points, better in 7 of 10. Treat the three CNNs as roughly tied.
+- The single-split numbers are higher than the 10-split averages, so quote the averages.
+- The Deeper CNN's design was adjusted once after seeing a poor test score, so its test score is slightly optimistic.
+- Folding uses NASA's catalog period, so this shows folding helps once the period is known, not that the model can find planets from scratch.

@@ -13,4 +13,4 @@ data/lightcurves/
 streamlit.log
 
 # Streamlit
-.streamlit/
+.streamlit/secrets.toml

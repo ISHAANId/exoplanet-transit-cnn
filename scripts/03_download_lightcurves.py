@@ -103,6 +103,9 @@ def main():
     parser.add_argument("--sample-balanced", action="store_true",
                          help="When used with --limit, sample roughly half planet / "
                               "half false-alarm stars instead of taking the first N rows.")
+    parser.add_argument("--shard", default=None, metavar="I/N",
+                         help="Process only every Nth star starting at I (e.g. 0/4). Run N "
+                              "copies with different I to download in parallel.")
     args = parser.parse_args()
 
     labels = pd.read_csv(KOI_CLEAN_TABLE_PATH)
@@ -117,6 +120,10 @@ def main():
             stars = pd.concat([planets, falses]).sample(frac=1, random_state=RANDOM_SEED)
         else:
             stars = stars.head(args.limit)
+
+    if args.shard:
+        shard_i, shard_n = (int(v) for v in args.shard.split("/"))
+        stars = stars.iloc[shard_i::shard_n]
 
     print(f"Downloading light curves for {len(stars)} stars ...")
 

@@ -48,3 +48,18 @@ def build_cnn(n_points: int) -> keras.Model:
         ],
     )
     return model
+
+
+def prepare(X):
+    """Rescale light curves for the network.
+
+    Raw values sit at ~1.0 and a planet's dip is only ~0.0001-0.01 deep, so fed
+    directly the CNN sees an almost constant input and collapses to one answer.
+    Subtract each curve's median and use arcsinh so shallow transits stay visible
+    while deep eclipsing-binary dips (and outliers) are compressed, not dominant.
+    The training script and the app must both call this so they agree.
+    """
+    import numpy as np
+    X = np.asarray(X, dtype=np.float32)
+    med = np.median(X, axis=-1, keepdims=True)
+    return np.arcsinh((X - med) / 3e-4)

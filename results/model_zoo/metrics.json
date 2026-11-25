@@ -1,0 +1,175 @@
+{
+  "n_test": 260,
+  "min_group": 20,
+  "models": {
+    "ExoFinder CNN": {
+      "info": "Our 3-layer 1D convolutional network. The model used everywhere else in the app.",
+      "accuracy": 0.8307692307692308,
+      "roc_auc": 0.8758328663054985,
+      "by_star_type": {
+        "M": {
+          "n": 22,
+          "accuracy": 0.9090909090909091
+        },
+        "K": {
+          "n": 60,
+          "accuracy": 0.8333333333333334
+        },
+        "G": {
+          "n": 120,
+          "accuracy": 0.8166666666666667
+        },
+        "F": {
+          "n": 51,
+          "accuracy": 0.8431372549019608
+        },
+        "A": {
+          "n": 2,
+          "accuracy": 0.5
+        }
+      }
+    },
+    "Deeper CNN": {
+      "info": "Five convolution layers, pooled to the strongest dip anywhere in the curve. More capacity.",
+      "accuracy": 0.8384615384615385,
+      "roc_auc": 0.9156236378354816,
+      "by_star_type": {
+        "M": {
+          "n": 22,
+          "accuracy": 0.8636363636363636
+        },
+        "K": {
+          "n": 60,
+          "accuracy": 0.7833333333333333
+        },
+        "G": {
+          "n": 120,
+          "accuracy": 0.825
+        },
+        "F": {
+          "n": 51,
+          "accuracy": 0.9215686274509803
+        },
+        "A": {
+          "n": 2,
+          "accuracy": 0.5
+        }
+      }
+    },
+    "GRU": {
+      "info": "A recurrent network that reads the curve left to right, like a sequence.",
+      "accuracy": 0.6884615384615385,
+      "roc_auc": 0.6798679867986799,
+      "by_star_type": {
+        "M": {
+          "n": 22,
+          "accuracy": 0.8636363636363636
+        },
+        "K": {
+          "n": 60,
+          "accuracy": 0.7
+        },
+        "G": {
+          "n": 120,
+          "accuracy": 0.75
+        },
+        "F": {
+          "n": 51,
+          "accuracy": 0.5490196078431373
+        },
+        "A": {
+          "n": 2,
+          "accuracy": 0.0
+        }
+      }
+    },
+    "Two-view CNN": {
+      "info": "Reads two pictures of each star: the whole orbit AND a zoomed-in look at just the dip, so it can judge the dip's true shape.",
+      "accuracy": 0.85,
+      "roc_auc": 0.9008032878759574,
+      "by_star_type": {
+        "M": {
+          "n": 22,
+          "accuracy": 0.8636363636363636
+        },
+        "K": {
+          "n": 60,
+          "accuracy": 0.85
+        },
+        "G": {
+          "n": 120,
+          "accuracy": 0.8333333333333334
+        },
+        "F": {
+          "n": 51,
+          "accuracy": 0.8823529411764706
+        },
+        "A": {
+          "n": 2,
+          "accuracy": 0.5
+        }
+      }
+    },
+    "Random Forest": {
+      "info": "300 decision trees voting on the curve's values. No deep learning.",
+      "accuracy": 0.75,
+      "roc_auc": 0.833053116632418,
+      "by_star_type": {
+        "M": {
+          "n": 22,
+          "accuracy": 0.5454545454545454
+        },
+        "K": {
+          "n": 60,
+          "accuracy": 0.7166666666666667
+        },
+        "G": {
+          "n": 120,
+          "accuracy": 0.775
+        },
+        "F": {
+          "n": 51,
+          "accuracy": 0.8235294117647058
+        },
+        "A": {
+          "n": 2,
+          "accuracy": 0.5
+        }
+      }
+    },
+    "Logistic Regression": {
+      "info": "The simplest baseline: one weighted sum of the curve's values.",
+      "accuracy": 0.7576923076923077,
+      "roc_auc": 0.7787533470328165,
+      "by_star_type": {
+        "M": {
+          "n": 22,
+          "accuracy": 0.9090909090909091
+        },
+        "K": {
+          "n": 60,
+          "accuracy": 0.7333333333333333
+        },
+        "G": {
+          "n": 120,
+          "accuracy": 0.7833333333333333
+        },
+        "F": {
+          "n": 51,
+          "accuracy": 0.7058823529411765
+        },
+        "A": {
+          "n": 2,
+          "accuracy": 0.0
+        }
+      }
+    }
+  },
+  "star_types": {
+    "M": 22,
+    "K": 60,
+    "G": 120,
+    "F": 51,
+    "A": 2
+  }
+}

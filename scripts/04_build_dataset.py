@@ -34,7 +34,7 @@ from config import (  # noqa: E402
     KOI_CLEAN_TABLE_PATH, LIGHTCURVE_CACHE_DIR, RAW_DATASET_PATH, FOLDED_DATASET_PATH,
     N_POINTS, RANDOM_SEED, TEST_FRACTION, VAL_FRACTION,
 )
-from lightcurve_utils import clean_lightcurve, make_raw_view, make_folded_view  # noqa: E402
+from lightcurve_utils import clean_lightcurve, make_raw_view, make_folded_view, make_local_view  # noqa: E402
 
 
 def star_level_split(kepids: np.ndarray) -> np.ndarray:
@@ -65,7 +65,7 @@ def main():
 
     labels = pd.read_csv(KOI_CLEAN_TABLE_PATH)
 
-    raw_X, folded_X, y, kepids, koi_names = [], [], [], [], []
+    raw_X, folded_X, local_X, y, kepids, koi_names = [], [], [], [], [], []
     cleaned_cache = {}  # kepid -> cleaned LightCurve, so a multi-KOI star isn't re-cleaned per row
 
     n_ok, n_no_cache, n_failed = 0, 0, 0
@@ -89,12 +89,15 @@ def main():
                                       row.koi_duration, N_POINTS)
             folded_view = make_folded_view(lc_clean, row.koi_period, row.koi_time0bk, N_POINTS)
 
-            if np.isnan(raw_view).any() or np.isnan(folded_view).any():
+            local_view = make_local_view(lc_clean, row.koi_period, row.koi_time0bk, row.koi_duration)
+
+            if np.isnan(raw_view).any() or np.isnan(folded_view).any() or np.isnan(local_view).any():
                 n_failed += 1
                 continue
 
             raw_X.append(raw_view)
             folded_X.append(folded_view)
+            local_X.append(local_view)
             y.append(int(row.label))
             kepids.append(kepid)
             koi_names.append(row.kepoi_name)
@@ -114,6 +117,7 @@ def main():
     koi_names = np.array(koi_names, dtype=object)
     raw_X = np.stack(raw_X).astype(np.float32)
     folded_X = np.stack(folded_X).astype(np.float32)
+    local_X = np.stack(local_X).astype(np.float32)
 
     split = star_level_split(kepids)
 
@@ -124,7 +128,8 @@ def main():
 
     for name, X in [("raw", raw_X), ("folded", folded_X)]:
         path = RAW_DATASET_PATH if name == "raw" else FOLDED_DATASET_PATH
-        np.savez(path, X=X, y=y, kepid=kepids, koi_name=koi_names, split=split)
+        extra = {"X_local": local_X} if name == "folded" else {}   # zoomed-in view for the Two-view CNN
+        np.savez(path, X=X, y=y, kepid=kepids, koi_name=koi_names, split=split, **extra)
         print(f"Saved {name} dataset -> {path}  X.shape={X.shape}")
 
     print("\nSplit sizes (examples / unique stars):")

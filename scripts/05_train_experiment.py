@@ -35,7 +35,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from config import (  # noqa: E402
     RAW_DATASET_PATH, FOLDED_DATASET_PATH, RESULTS_DIR, MODELS_DIR, RANDOM_SEED, N_POINTS,
 )
-from model import build_cnn  # noqa: E402
+from model import build_cnn, prepare  # noqa: E402
 
 
 def load_split(npz_path: Path):
@@ -44,7 +44,7 @@ def load_split(npz_path: Path):
     out = {}
     for s in ["train", "val", "test"]:
         m = split == s
-        out[s] = (X[m][..., np.newaxis], y[m])  # add channel dim -> (N, n_points, 1)
+        out[s] = (prepare(X[m])[..., np.newaxis], y[m])  # add channel dim -> (N, n_points, 1)
     return out
 
 

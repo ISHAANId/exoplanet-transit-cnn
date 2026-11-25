@@ -77,3 +77,17 @@ thousands of stars from MAST will take a long time.
 - **No numbers are invented.** `05_train_experiment.py` refuses to report
   results if there isn't enough real data to train on, and every metric in
   `PROJECT_LOG.md` is copied from an actual `metrics.json` produced by a run.
+
+## Final results (Nov 2026)
+
+1,049 Kepler stars, 1,282 planet / false-alarm examples, split by star (train 808, val 214, test 260 examples).
+
+| Experiment | Accuracy | ROC-AUC |
+|---|---|---|
+| A: raw (single transit) | 67.3% | 0.707 |
+| B: phase-folded | 83.1% | 0.876 |
+
+Over 10 random star-level splits, folding beat raw in 10 of 10 (about +11.5 accuracy points). Six models were compared (ExoFinder CNN, Deeper CNN, Two-view CNN, GRU, Random Forest, Logistic Regression); the three CNNs are roughly tied at about 80-81% average accuracy. Full details: `report/Project_Complete_Report_Simple.pdf` and `PROJECT_LOG.md`.
+
+Run the app: `venv/Scripts/python.exe -m streamlit run app.py`
+Extra scripts: `scripts/07_model_zoo.py` (six-model comparison), `scripts/08_repeated_splits.py` (error bars), `report/build_report.py` (rebuild the PDF).
